@@ -1,5 +1,3 @@
-# file_processing_analytics/analytics.py
-
 import logging
 import csv
 from pathlib import Path
@@ -10,10 +8,11 @@ from .progress import ProgressTracker
 from .errors import InvalidInputError
 from tqdm import tqdm
 
+
 class AnalyticsProcessor:
     def __init__(
         self,
-        input_collection: Union[str, List[str], InputCollection],
+        input_collection: Union[str, List[str], InputCollection, Path],
         output_csv_path: str,
         progress_tracker: ProgressTracker = None,
         log_level=logging.INFO,
@@ -43,8 +42,8 @@ class AnalyticsProcessor:
     def _init_input_collection(self, input_collection):
         if isinstance(input_collection, InputCollection):
             return input_collection
-        elif isinstance(input_collection, str):
-            return DirectoryInput(input_collection)
+        elif isinstance(input_collection, (str, Path)):  # Handle Path and string types
+            return DirectoryInput(str(input_collection))
         elif isinstance(input_collection, list):
             return ListInput(input_collection)
         else:
@@ -73,7 +72,7 @@ class AnalyticsProcessor:
                 try:
                     self.logger.info(f"Processing file: {file_path}")
                     file_obj = File(file_path)
-                    text = file_obj.metadata.get('text', '')
+                    text = file_obj.metadata.get('text', '').replace('\n', '\\n')  # Replace newlines
                     csv_writer.writerow([file_obj.file_name, text])
                     self.progress_tracker.mark_processed(file_path)
                 except Exception as e:
@@ -81,4 +80,4 @@ class AnalyticsProcessor:
                     continue
 
         self.logger.info("Processing completed.")
-        self.progress_tracker.close()
+

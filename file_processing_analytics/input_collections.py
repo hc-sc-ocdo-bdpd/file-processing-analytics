@@ -1,5 +1,3 @@
-# file_processing_analytics/input_collections.py
-
 from pathlib import Path
 from typing import List, Iterator, Iterable
 from .errors import InvalidInputError

@@ -1,5 +1,3 @@
-# file_processing_analytics/progress.py
-
 import sqlite3
 from pathlib import Path
 

@@ -1,5 +1,3 @@
-# file_processing_analytics/errors.py
-
 class AnalyticsError(Exception):
     """Base exception for the analytics library."""
 
