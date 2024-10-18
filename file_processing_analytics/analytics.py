@@ -52,7 +52,7 @@ class AnalyticsProcessor:
     def _validate_output_path(self):
         if not self.output_csv_path.parent.exists():
             self.output_csv_path.parent.mkdir(parents=True, exist_ok=True)
-
+            
     def process_files(self):
         """
         Processes files and writes output to CSV.
@@ -63,7 +63,7 @@ class AnalyticsProcessor:
         with open(self.output_csv_path, 'a', newline='', encoding='utf-8') as csvfile:
             csv_writer = csv.writer(csvfile)
             if csvfile.tell() == 0:
-                csv_writer.writerow(['file_name', 'text'])
+                csv_writer.writerow(['file_name', 'text', 'error'])
 
             for file_path in tqdm(self.input_collection, total=total_files, unit='file'):
                 if self.progress_tracker.is_processed(file_path):
@@ -73,11 +73,13 @@ class AnalyticsProcessor:
                     self.logger.info(f"Processing file: {file_path}")
                     file_obj = File(file_path)
                     text = file_obj.metadata.get('text', '').replace('\n', '\\n')  # Replace newlines
-                    csv_writer.writerow([file_obj.file_name, text])
+                    csv_writer.writerow([file_obj.file_name, text, ''])
                     self.progress_tracker.mark_processed(file_path)
                 except Exception as e:
                     self.logger.error(f"Error processing file {file_path}: {e}")
+                    # Write the error information to the CSV
+                    csv_writer.writerow([Path(file_path).name, '', str(e)])
+                    self.progress_tracker.mark_processed(file_path)
                     continue
 
         self.logger.info("Processing completed.")
-

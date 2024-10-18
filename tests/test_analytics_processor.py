@@ -24,14 +24,14 @@ def test_csv_content(temp_directory_with_files, tmp_path, progress_tracker):
         content = f.readlines()
 
     # Check that the first row is the header
-    assert content[0].strip() == 'file_name,text'
+    assert content[0].strip() == 'file_name,text,error'
 
     # Check that the number of files processed matches the number of lines (3 files + 1 header)
     assert len(content) == 4  # 3 files in the directory + 1 header line
 
     # Verify the file names in the first column (without verifying the text)
     expected_files = [
-        '2021_Census_English.csv',
+        '2021_Census_English_corrupted.csv',
         'ArtificialNeuralNetworksForBeginners.pdf',
         'HealthCanadaOverviewFromWikipedia.docx'
     ]
@@ -66,7 +66,7 @@ def test_progress_tracking(temp_directory_with_files, tmp_path, progress_tracker
     processor.process_files()
 
     # Check that progress is tracked for files before closing the tracker
-    assert progress_tracker.is_processed(str(temp_directory_with_files / "2021_Census_English.csv"))
+    assert progress_tracker.is_processed(str(temp_directory_with_files / "2021_Census_English_corrupted.csv"))
     assert progress_tracker.is_processed(str(temp_directory_with_files / "ArtificialNeuralNetworksForBeginners.pdf"))
     assert progress_tracker.is_processed(str(temp_directory_with_files / "HealthCanadaOverviewFromWikipedia.docx"))
 

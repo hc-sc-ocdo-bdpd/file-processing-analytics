@@ -13,7 +13,7 @@ def temp_directory_with_files(tmp_path_factory):
 
     # Copy some test files into the temp directory
     test_files = [
-        '2021_Census_English.csv',
+        '2021_Census_English_corrupted.csv',
         'ArtificialNeuralNetworksForBeginners.pdf',
         'HealthCanadaOverviewFromWikipedia.docx'
     ]
