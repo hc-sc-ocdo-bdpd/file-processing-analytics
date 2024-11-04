@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from file_processing_analytics import AnalyticsProcessor
+from file_processing_analytics.analytics import AnalyticsProcessor
 from file_processing_analytics.errors import InvalidInputError
 from file_processing_test_data import get_test_files_path, get_all_test_files
 from file_processing_analytics.progress import ProgressTracker
