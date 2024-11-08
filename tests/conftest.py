@@ -2,7 +2,7 @@ import shutil
 import pytest
 from pathlib import Path
 from file_processing_test_data import get_test_files_path, get_all_test_files
-from file_processing_analytics import AnalyticsProcessor, ProgressTracker
+from file_processing_analytics.analytics import AnalyticsProcessor, ProgressTracker
 from file_processing_analytics.input_collections import DirectoryInput, ListInput
 
 # Fixture to set up temporary directory with all test files
