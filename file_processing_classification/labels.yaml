@@ -1,0 +1,124 @@
+# file_processing_classification/labels.yaml
+# --------------------------------------------------------------------
+# label → prompt mapping for zero-shot document classification.
+# 
+# --------------------------------------------------------------------
+
+# labels.yaml  –  project-document repository
+Project_Charter: >
+  A Project Charter Document that outliens the scope a project; includes objectives,
+  scope, key stakeholders, high-level budget and timeline.
+
+Project_Proposal: >
+  A document that pitches or requests approval for a new project,
+  outlining benefits, costs and alternative solutions.
+
+Requirements_Specs: >
+  A formal list of functional and non-functional requirements that the
+  product or system must satisfy.
+
+Meeting Notes: >
+  Notes taken during a meeting, capturing key points, decisions,
+  action items and responsible parties.
+
+High_Level_Design: >
+  A design document (architecture, requirements or 
+  High Level Business Requirement (HL-breakdown)) describing how the
+  system will be built at a module or component level.
+
+Detailed_Design: >
+  Low-level design artefacts such as interface specs, API contracts,
+  data dictionaries or circuit schematics.
+
+Project_Plan: >
+  A step-by-step Project Management (PMP) document that outlines the
+  plan or task breakdown for implementing features,
+  often containing work packages, assignees and effort estimates.
+
+Test_Plan: >
+  Outlines test strategy, test cases, and entry/exit criteria.
+
+Test_Report: >
+  The results of executed tests (pass/fail, defects, coverage,
+  metrics) sometimes called QA summary or validation report.
+
+Risk_Register: >
+  A table or log of identified risks, likelihood, impact, mitigation
+  actions and owners; am also be Risk Register or a Project Complexity 
+  Risk Assessment (PCRA) document.
+
+Status_Report: >
+  A periodic project status update including progress, issues,
+  milestones, variance and next steps.
+
+Meeting_Minutes: >
+  Notes or minutes from a project meeting capturing attendees,
+  decisions, action items and due dates.
+
+Change_Request: >
+  A formal request to add, modify or remove scope, requirements or
+  resources; may include impact analysis.
+
+Release_Notes: >
+  A document describing new features, fixes and known issues for a
+  software or product release.
+
+User_Guide: >
+  End-user documentation explaining how to install, configure or use
+
+  the delivered system.
+
+Technical_Document: >
+  Technical or developer-oriented manual (API guide, integration doc,
+  maintenance instructions).
+
+Contract_or_SOW: >
+  A legally binding contract, statement of work (SOW) or purchase
+  agreement related to the project.
+
+Sensitivty_Statement: >
+  A Statement of Sensivity (SOS) document that outlines the sensitivity 
+  of the project, including
+  any sensitive data, security requirements, or compliance issues.
+
+Correspondence: >
+  An email thread or exported message (.eml, .msg) discussing project
+  matters; with To:, From:, Subject: and Date: headers.
+  
+
+Project_Comms: >
+  A project‐wide communication or status update (e-mail, bulletin, newsletter,
+  slide deck) intended for stakeholders; highlights progress, upcoming
+  milestones, risks and action items in non-technical language.
+
+Options_Analysis: >
+  A comparative analysis that evaluates two or more solution options;
+  includes evaluation criteria, pros / cons, qualitative and quantitative
+  scoring, risk assessment, and a recommended option with rationale.
+
+Intake_Document: >
+  Notes captured during the first client discovery meeting; records the
+  client’s preliminary objectives, high-level requirements, constraints,
+  assumptions, stakeholders, and next steps for scoping the project.
+
+Lessons_Learned: >
+  A retrospective document produced near or after project completion;
+  captures what went well, what went poorly, root-cause analyses,
+  recommended improvements, and actionable steps to benefit future
+  projects.
+
+Project_Close_Out: >
+  The final wrap-up package for a project; confirms deliverables met,
+  obtains stakeholder sign-off, summarizes budget and schedule
+  variances, lists outstanding items transferred to operations, and
+  archives key artefacts for governance compliance.
+
+Investment Plan: >
+  A strategic Gate 0, Gate 1, Gate 2, Gate 3 document that justifies funding for a project;
+  presented at Archiectirecture Review Board (ARB);
+  Branch Executive Committee (BEC) or EC FIPT or CE-FPIT; or
+  Digital Architecture and Strategy for Health (DASH). 
+
+Other: >
+  Documents that do not match any of the above categories.
+

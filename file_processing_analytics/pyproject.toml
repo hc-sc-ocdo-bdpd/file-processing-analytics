@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "file-processing-classification"
+version = "0.1.0"
+description = "Zero-shot document classification decorator for file-processing."
+authors = [{ name = "Your Org", email = "you@example.com" }]
+readme = ""
+requires-python = ">=3.9"
+dependencies = ["sentence-transformers>=2.7"]

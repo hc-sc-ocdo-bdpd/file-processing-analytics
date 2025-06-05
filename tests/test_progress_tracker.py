@@ -1,4 +1,3 @@
-import pytest
 from file_processing_analytics.progress import ProgressTracker
 
 def test_progress_tracker_mark_processed(progress_tracker):

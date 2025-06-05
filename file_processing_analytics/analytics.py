@@ -1,120 +1,202 @@
-import logging
-import csv
+# file_processing_analytics/analytics.py
+"""
+Process many files → CSV, with optional zero-shot classification.
+"""
+
+from __future__ import annotations
+import argparse, csv, logging
 from pathlib import Path
-from typing import Union, List
-from file_processing import File
-from .input_collections import InputCollection, DirectoryInput, ListInput
-from .progress import ProgressTracker
-from .errors import InvalidInputError
+from typing import List, Optional, Union
+
 from tqdm import tqdm
+from file_processing import File
+from .errors import InvalidInputError
+from .input_collections import DirectoryInput, InputCollection, ListInput
+from .progress import ProgressTracker
 
+try:
+    from file_processing_classification import ClassificationDecorator
+except ImportError:
+    ClassificationDecorator = None  # plug-in is optional
+
+
+# ───────────────────────────────────────────────────────────────
 class AnalyticsProcessor:
-    """
-    The core class for processing files to extract metadata and store it in CSV format.
-
-    This class orchestrates the file processing, metadata extraction, and error handling.
-    It supports directory-based and list-based input collections and allows resuming long-running tasks.
-    """
-
     def __init__(
         self,
         input_collection: Union[str, List[str], InputCollection, Path],
-        output_csv_path: str,
-        progress_tracker: ProgressTracker = None,
-        log_level=logging.INFO,
-    ):
-        """
-        Initializes the AnalyticsProcessor.
+        output_csv_path: str | Path,
+        *,
+        progress_tracker: Optional[ProgressTracker] = None,
+        log_level: int = logging.INFO,
+        enable_classification: bool = False,
+        labels_yaml: str | None = None,
+        reset_progress: bool = False,
+    ) -> None:
 
-        Args:
-            input_collection (Union[str, List[str], InputCollection, Path]): Directory path, list of file paths,
-                or an InputCollection object for processing.
-            output_csv_path (str): Path to the output CSV file where results will be stored.
-            progress_tracker (ProgressTracker, optional): Tracker for processed files, allowing task resumption.
-            log_level (int, optional): Logging level, with default set to INFO.
-        """
+        # inputs ---------------------------------------------------
         self.input_collection = self._init_input_collection(input_collection)
         self.output_csv_path = Path(output_csv_path)
-        self.progress_tracker = progress_tracker or ProgressTracker()
+
+        # progress tracker ----------------------------------------
+        self.progress_tracker = progress_tracker    # may be None
+        if reset_progress and self.progress_tracker:
+            if getattr(self.progress_tracker, "state_file", None):
+                Path(self.progress_tracker.state_file).unlink(missing_ok=True)
+            if hasattr(self.progress_tracker, "_processed"):
+                self.progress_tracker._processed.clear()
+
+        # logging -------------------------------------------------
         self.logger = self._init_logger(log_level)
         self._validate_output_path()
 
-    def _init_logger(self, log_level):
-        """
-        Initializes and returns a logger for tracking file processing progress and errors.
+        # decorators ----------------------------------------------
+        self.decorators: list = []
+        if enable_classification:
+            if ClassificationDecorator is None:
+                raise ImportError("file-processing-classification not installed")
+            self.decorators.append(ClassificationDecorator(labels_yaml=labels_yaml))
 
-        Args:
-            log_level (int): The logging level to set.
+        self.logger.debug(
+            "Decorators configured: %s",
+            [getattr(d, "name", str(d)) for d in self.decorators],
+        )
 
-        Returns:
-            logging.Logger: Configured logger instance.
-        """
-        logger = logging.getLogger('AnalyticsProcessor')
-        logger.setLevel(log_level)
+    # ───────── helpers ─────────
+    @staticmethod
+    def _init_logger(level: int) -> logging.Logger:
+        logger = logging.getLogger("AnalyticsProcessor")
+        logger.setLevel(level)
         handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+        handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
+        logger.handlers.clear()
         logger.addHandler(handler)
         return logger
 
-    def _init_input_collection(self, input_collection):
-        """
-        Initializes the input collection based on the provided input type.
+    def _init_input_collection(
+        self, src: Union[str, List[str], InputCollection, Path]
+    ) -> InputCollection:
+        if isinstance(src, InputCollection):
+            return src
+        if isinstance(src, (str, Path)):
+            return DirectoryInput(str(src))
+        if isinstance(src, list):
+            return ListInput(src)
+        raise InvalidInputError("Invalid input collection type.")
 
-        Args:
-            input_collection (Union[str, List[str], InputCollection, Path]): The input files for processing,
-                specified as a directory path, list of file paths, or an InputCollection object.
+    def _validate_output_path(self) -> None:
+        self.output_csv_path.parent.mkdir(parents=True, exist_ok=True)
 
-        Returns:
-            InputCollection: The initialized input collection.
+    def _apply_decorators(self, file_obj: File) -> File:
+        for deco in self.decorators:
+            file_obj = deco(file_obj)
+        return file_obj
 
-        Raises:
-            InvalidInputError: If an invalid type is provided for input_collection.
-        """
-        if isinstance(input_collection, InputCollection):
-            return input_collection
-        elif isinstance(input_collection, (str, Path)):
-            return DirectoryInput(str(input_collection))
-        elif isinstance(input_collection, list):
-            return ListInput(input_collection)
-        else:
-            raise InvalidInputError("Invalid input collection type.")
+    # ───────── main loop ───────
+    def process_files(self) -> None:
+        total = len(self.input_collection)
+        self.logger.info("Starting processing of %s files.", total)
 
-    def _validate_output_path(self):
-        """
-        Validates and creates the output directory if it doesn't exist.
-        """
-        if not self.output_csv_path.parent.exists():
-            self.output_csv_path.parent.mkdir(parents=True, exist_ok=True)
+        summary_rows: list[tuple[str, str, str]] = []
 
-    def process_files(self):
-        """
-        Processes files in the input collection and writes metadata and errors to the CSV output.
+        # clear in-memory list if tracker is reset this run
+        if self.progress_tracker and hasattr(self.progress_tracker, "_processed"):
+            self.progress_tracker._processed.clear()
 
-        This method iterates through each file in the input collection, extracts metadata,
-        and logs errors as they occur. Processed file names are tracked for resumption support.
-        """
-        total_files = len(self.input_collection)
-        self.logger.info(f"Starting processing of {total_files} files.")
+        # open CSV once
+        with open(self.output_csv_path, "w", newline="", encoding="utf-8") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(  # header
+                ["file_name", "text", "classification_label",
+                 "classification_confidence", "error"]
+            )
 
-        with open(self.output_csv_path, 'a', newline='', encoding='utf-8') as csvfile:
-            csv_writer = csv.writer(csvfile)
-            if csvfile.tell() == 0:  # Write header if file is empty
-                csv_writer.writerow(['file_name', 'text', 'error'])
-
-            for file_path in tqdm(self.input_collection, total=total_files, unit='file'):
-                if self.progress_tracker.is_processed(file_path):
-                    self.logger.debug(f"Skipping already processed file: {file_path}")
+            for file_path in tqdm(self.input_collection, total=total, unit="file"):
+                if self.progress_tracker and self.progress_tracker.is_processed(file_path):
+                    self.logger.debug("Skipping already processed file: %s", file_path)
                     continue
+
                 try:
-                    self.logger.info(f"Processing file: {file_path}")
-                    file_obj = File(file_path)
-                    text = file_obj.metadata.get('text', '').replace('\n', '\\n')  # Replace newlines
-                    csv_writer.writerow([file_obj.file_name, text, ''])
-                    self.progress_tracker.mark_processed(file_path)
-                except Exception as e:
-                    self.logger.error(f"Error processing file {file_path}: {e}")
-                    csv_writer.writerow([Path(file_path).name, '', str(e)])
-                    self.progress_tracker.mark_processed(file_path)
-                    continue
+                    f = File(file_path)
+                    f = self._apply_decorators(f)
 
-        self.logger.info("Processing completed.")
+                    text = getattr(f, "text", f.metadata.get("text", "")).replace("\n", "\\n")
+                    cls  = f.metadata.get("classification", {})
+                    label = cls.get("label", "")
+                    conf  = cls.get("confidence", "")
+
+                    writer.writerow([Path(file_path).name, text, label, conf, ""])
+                    if self.progress_tracker:
+                        self.progress_tracker.mark_processed(file_path)
+
+                    summary_rows.append(  # success row
+                        (Path(file_path).name[:40].ljust(40),
+                         label.ljust(20),
+                         f"{float(conf):6.2f}" if conf else "  --- ")
+                    )
+
+                    self.logger.debug(
+                        "CLASSIFIED %s → %s (%.4f)", Path(file_path).name, label, conf or 0.0
+                    )
+
+                except Exception as exc:
+                    self.logger.error("Error processing %s: %s", file_path, exc)
+                    writer.writerow([Path(file_path).name, "", "", "", str(exc)])
+                    if self.progress_tracker:
+                        self.progress_tracker.mark_processed(file_path)
+
+                    summary_rows.append(  # error row
+                        (Path(file_path).name[:40].ljust(40),
+                         "Error".ljust(20),
+                         "  --- ")
+                    )
+
+        # ─── pretty-print summary table ─────────────────────────
+        if summary_rows:
+            print("\n" + "─" * 8)
+            print(" Document".ljust(42) + "│ Predicted label       │ Conf")
+            print("─" * 78)
+            for fn, lab, conf in summary_rows:
+                print(f" {fn} │ {lab} │ {conf}")
+            print("─" * 78)
+
+        self.logger.info(
+            "Processing completed. Wrote %d rows → %s",
+            len(summary_rows),
+            self.output_csv_path,
+        )
+
+
+# ───────── CLI ─────────
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser("file-processing-analytics")
+    p.add_argument("--input", required=True, help="Directory or list file")
+    p.add_argument("--output", required=True, help="CSV output path")
+    p.add_argument("--enable-classification", action="store_true",
+                   help="Run zero-shot document classification")
+    p.add_argument("--labels-yaml", help="Custom labels YAML (optional)")
+    p.add_argument("--resume", action="store_true",
+                   help="Resume from .analytics_progress.jsonl")
+    p.add_argument("--loglevel", default="INFO",
+                   choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+    return p
+
+
+def main() -> None:  # pragma: no cover
+    args = _build_parser().parse_args()
+    level = getattr(logging, args.loglevel.upper(), logging.INFO)
+
+    tracker = ProgressTracker() if args.resume else None
+
+    AnalyticsProcessor(
+        input_collection=args.input,
+        output_csv_path=args.output,
+        log_level=level,
+        enable_classification=args.enable_classification,
+        labels_yaml=args.labels_yaml,
+        progress_tracker=tracker,
+    ).process_files()
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()

@@ -24,6 +24,7 @@
 - **Error Logging**: Captures processing errors per file, logging them into the CSV output for easy diagnostics.
 - **Progress Tracking**: Supports tracking of processed files to resume long-running tasks, using SQLite.
 - **Output to CSV**: Aggregates results in a CSV format, making it easy to view, share, or further analyze.
+- **Zero-shot document classification** | Plug-in decorator (`file_processing_classification`). One flag adds labels like *Project_Charter*, *Risk_Register*, *Lessons_Learned* with confidence scores. Runs locally on GPU/CPU — no cloud calls. | 
 
 ---
 
@@ -34,7 +35,8 @@ Install `file-processing-analytics` via GitHub:
 ```bash
 pip install git+https://github.com/hc-sc-ocdo-bdpd/file-processing-analytics.git
 ```
-
+# add the classifier plug-in
+pip install -e file-processing-classification
 ---
 
 ## Quick Start
@@ -67,6 +69,9 @@ processor.process_files()
 ---
 
 ## Architecture
+File → FileProcessor → ClassificationDecorator → DocumentClassifier
+                                   │
+                            adds {"classification": {...}}
 
 ### Key Components
 
@@ -84,6 +89,13 @@ Errors encountered during processing are logged directly into the CSV file, capt
 
 You can customize or extend functionality by creating custom InputCollections or by adding new processing behaviors in conjunction with `file-processing`.
 
+For classifier:
+Add labels – edit labels.yaml; no retraining required.
+
+Swap model – change DEFAULT_MODEL in classifier.py
+
+Stack decorators – combine OCRDecorator, TranscriptionDecorator,
+ClassificationDecorator for end-to-end pipelines. TBD
 ---
 
 ## Contributing

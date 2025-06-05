@@ -10,3 +10,4 @@ setup(
     version="1.0.0",
     install_requires=read_requirements(), # Dependencies listed in requirements.txt
 )
+
